@@ -59,31 +59,8 @@ export default function App() {
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
 
-  const [fwd, setFwd] = useState(null)
-  const [fwdBusy, setFwdBusy] = useState(false)
-
   const [adImages, setAdImages] = useState({})
   const [metaEnabled, setMetaEnabled] = useState(null)
-
-  async function loadForwarder() {
-    try {
-      const res = await fetch('/api/forwarder/status')
-      setFwd(await res.json())
-    } catch {
-      /* ignore */
-    }
-  }
-
-  async function runForwarder() {
-    try {
-      setFwdBusy(true)
-      const res = await fetch('/api/forwarder/run', { method: 'POST' })
-      const json = await res.json()
-      setFwd(json.status || null)
-    } finally {
-      setFwdBusy(false)
-    }
-  }
 
   async function load(refresh = false) {
     try {
@@ -103,12 +80,8 @@ export default function App() {
 
   useEffect(() => {
     load()
-    loadForwarder()
-    // Auto-refresco: trae datos de la hoja y estado del forwarder cada 30s.
-    const t = setInterval(() => {
-      load(true)
-      loadForwarder()
-    }, 30000)
+    // Auto-refresco: vuelve a leer la hoja cada 30s.
+    const t = setInterval(() => load(true), 30000)
     return () => clearInterval(t)
   }, [])
 
@@ -307,41 +280,6 @@ export default function App() {
               </div>
             </div>
           </section>
-
-          {/* Estado del reenvío a n8n */}
-          {fwd && (
-            <section className="card">
-              <div className="card-head">
-                <h2>
-                  Reenvío a n8n{' '}
-                  <span className={`badge ${fwd.webhookConfigured ? 'badge-green' : 'badge-gray'}`}>
-                    {fwd.webhookConfigured ? 'activo' : 'sin configurar'}
-                  </span>
-                </h2>
-                <button className="btn btn-sm" onClick={runForwarder} disabled={fwdBusy || !fwd.webhookConfigured}>
-                  {fwdBusy ? 'Enviando…' : 'Forzar envío ahora'}
-                </button>
-              </div>
-              {!fwd.webhookConfigured ? (
-                <p className="muted">
-                  Pega la URL del webhook de n8n en <code>server/.env</code> (<code>N8N_WEBHOOK_URL</code>) y se reactiva
-                  solo.
-                </p>
-              ) : (
-                <div className="fwd-stats">
-                  <span>
-                    Dispara con estado <strong>{fwd.triggerStatus}</strong>
-                  </span>
-                  <span>· revisa cada {fwd.pollSeconds}s</span>
-                  <span>
-                    · enviados: <strong>{fwd.forwardedCount}</strong>
-                  </span>
-                  {fwd.lastRun && <span>· último ciclo: {new Date(fwd.lastRun).toLocaleTimeString('es-MX')}</span>}
-                  {fwd.lastError && <span className="fwd-error">· error: {fwd.lastError}</span>}
-                </div>
-              )}
-            </section>
-          )}
 
           {/* Selector de estados convertidos */}
           <section className="card">

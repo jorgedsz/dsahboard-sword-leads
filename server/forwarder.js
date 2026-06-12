@@ -5,7 +5,10 @@ const { fetchSheet } = require('./sheet');
 const DATA_DIR = path.join(__dirname, 'data');
 const STORE_FILE = path.join(DATA_DIR, 'forwarded.json');
 
-const WEBHOOK_URL = (process.env.N8N_WEBHOOK_URL || '').trim();
+// Webhook de n8n hardcodeado por defecto (overridable con la env var N8N_WEBHOOK_URL).
+const DEFAULT_WEBHOOK_URL =
+  'https://primary-production-b7ae.up.railway.app/webhook/4b712687-a64d-4c24-bb9f-448dd5afd2a1';
+const WEBHOOK_URL = (process.env.N8N_WEBHOOK_URL || DEFAULT_WEBHOOK_URL).trim();
 const TRIGGER_STATUS = (process.env.TRIGGER_STATUS || 'Registered').trim();
 const POLL_MS = (Number(process.env.POLL_SECONDS) || 30) * 1000;
 const LEAD_ID_COL = process.env.LEAD_ID_COLUMN || 'LEAD_ID';
