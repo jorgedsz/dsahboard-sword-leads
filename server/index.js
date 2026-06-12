@@ -1,4 +1,6 @@
 require('dotenv').config();
+const path = require('path');
+const fs = require('fs');
 const express = require('express');
 const cors = require('cors');
 const { fetchSheet, csvUrl } = require('./sheet');
@@ -66,6 +68,18 @@ app.post('/api/ad-images', async (req, res) => {
 });
 
 app.get('/api/health', (req, res) => res.json({ ok: true }));
+
+// ─── Servir el frontend compilado (producción) ────────────────
+// En dev usamos Vite en :5173; en producción el server sirve client/dist.
+const clientDist = path.join(__dirname, '..', 'client', 'dist');
+if (fs.existsSync(clientDist)) {
+  app.use(express.static(clientDist));
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api/')) return next();
+    res.sendFile(path.join(clientDist, 'index.html'));
+  });
+  console.log('[static] sirviendo frontend desde client/dist');
+}
 
 app.listen(PORT, () => {
   console.log(`Leads server escuchando en http://localhost:${PORT}`);

@@ -59,3 +59,20 @@ Abre http://localhost:5173. Vite redirige `/api/*` al backend automáticamente.
 - `GET /api/leads` — devuelve `{ columns, statusKey, statuses, leads, total, fetchedAt }`.
 - `GET /api/leads?refresh=1` — ignora la caché y vuelve a bajar la hoja.
 - `GET /api/health` — `{ ok: true }`.
+
+## Deploy en Railway
+
+El repo es un monorepo (`client/` + `server/`). El `package.json` de la raíz instala ambos, compila el cliente y arranca el server, que **sirve el frontend compilado y la API en el mismo puerto** (sin CORS).
+
+1. En Railway: **New Project → Deploy from GitHub repo** → elige este repo.
+2. Deja el **Root Directory** en la raíz (no lo pongas en `server/`).
+3. Railway detecta Node y ejecuta automáticamente:
+   - `npm run build` → instala server + client y compila el cliente.
+   - `npm start` → `node server/index.js`.
+4. **Variables de entorno** (Settings → Variables): Railway ya define `PORT`. Agrega las que uses:
+   - `SHEET_ID` (por defecto la hoja actual), `SHEET_GID`
+   - `N8N_WEBHOOK_URL` (reenvío de leads a n8n)
+   - `META_ACCESS_TOKEN` (imágenes de anuncios; opcional)
+   - `TRIGGER_STATUS`, `POLL_SECONDS`, `META_API_VERSION` (opcionales)
+
+> En local sigues usando dos procesos (`server` en :3001 y `client` Vite en :5173). En producción todo va por el puerto que asigna Railway.
