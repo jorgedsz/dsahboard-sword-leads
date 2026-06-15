@@ -40,9 +40,10 @@ body {
 }
 
 .app {
-  max-width: 1220px;
+  width: 100%;
+  max-width: 1700px;
   margin: 0 auto;
-  padding: 28px 22px 80px;
+  padding: 28px clamp(16px, 3vw, 40px) 80px;
 }
 
 /* ─── Topbar ─── */
@@ -304,22 +305,28 @@ body {
 
 /* ─── Tables ─── */
 .table-wrap {
-  overflow-x: auto;
+  overflow-x: auto; /* respaldo: solo scrollea en pantallas chicas */
   border-radius: 12px;
 }
-table { width: 100%; border-collapse: collapse; }
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
 th, td {
   text-align: left;
-  padding: 12px 14px;
+  padding: 9px 11px;
   border-bottom: 1px solid var(--border);
-  white-space: nowrap;
+  vertical-align: middle;
+  overflow-wrap: anywhere; /* parte IDs/textos largos en vez de ensanchar */
 }
 thead th {
   color: var(--muted);
   font-weight: 600;
   font-size: 11px;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.05em;
+  white-space: nowrap; /* encabezados en una línea */
   border-bottom: 1px solid var(--border-strong);
   position: sticky;
   top: 0;
@@ -327,18 +334,18 @@ thead th {
 tbody tr { transition: background 0.12s; }
 tbody tr:hover { background: rgba(255, 255, 255, 0.035); }
 tbody tr:last-child td { border-bottom: none; }
-.num { text-align: right; font-variant-numeric: tabular-nums; }
-.bar-col { width: 230px; }
+.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.bar-col { width: 140px; }
 
 /* ─── Conversion bar ─── */
-.bar-cell { display: flex; align-items: center; gap: 12px; }
+.bar-cell { display: flex; align-items: center; gap: 8px; }
 .bar-track {
   flex: 1;
-  height: 9px;
+  height: 8px;
   background: rgba(255, 255, 255, 0.07);
   border-radius: 999px;
   overflow: hidden;
-  min-width: 120px;
+  min-width: 60px;
 }
 .bar-fill {
   height: 100%;
@@ -448,7 +455,16 @@ code {
 .recharts-cartesian-axis-tick-value { font-size: 12px; }
 .recharts-default-legend { font-size: 12px; }
 
+/* KPIs de costo: 3 → 2 columnas en tablets */
+@media (max-width: 900px) {
+  .meta-kpis { grid-template-columns: repeat(2, 1fr); }
+}
 @media (max-width: 640px) {
   .kpis { grid-template-columns: 1fr; }
+  .meta-kpis { grid-template-columns: 1fr; }
   .title { font-size: 21px; }
+  .card { padding: 16px; }
+  table { font-size: 12px; }
+  th, td { padding: 8px 8px; }
+  .card-head { gap: 8px; }
 }
