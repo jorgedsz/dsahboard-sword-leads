@@ -255,6 +255,32 @@ body {
 .chip-locked { cursor: default; border-style: dashed; }
 .chip-locked:hover { transform: none; }
 
+/* ─── Meta cost KPIs ─── */
+.range-select {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+.range-select .input { padding: 6px 10px; font-size: 13px; }
+.meta-kpis {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  margin-bottom: 18px;
+}
+.meta-kpi {
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.mk-label { color: var(--muted); font-size: 12px; font-weight: 500; }
+.mk-value { font-size: 22px; font-weight: 800; letter-spacing: -0.02em; }
+
 /* ─── Ad thumbnails ─── */
 .img-col { width: 76px; }
 .ad-thumb {

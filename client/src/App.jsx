@@ -62,6 +62,9 @@ export default function App() {
   const [adImages, setAdImages] = useState({})
   const [metaEnabled, setMetaEnabled] = useState(null)
 
+  const [adInsights, setAdInsights] = useState({})
+  const [datePreset, setDatePreset] = useState('maximum')
+
   async function load(refresh = false) {
     try {
       refresh ? setRefreshing(true) : setLoading(true)
@@ -109,6 +112,31 @@ export default function App() {
       cancelled = true
     }
   }, [data])
+
+  // Trae insights (gasto/rendimiento) de Meta para los AD_ID, según el rango elegido.
+  useEffect(() => {
+    const ids = [...new Set((data?.leads || []).map((l) => String(l[COL.adId] ?? '').trim()).filter(Boolean))]
+    if (ids.length === 0) return
+    let cancelled = false
+    ;(async () => {
+      try {
+        const res = await fetch('/api/ad-insights', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ adIds: ids, datePreset }),
+        })
+        const json = await res.json()
+        if (cancelled) return
+        setMetaEnabled((prev) => (prev == null ? json.enabled : prev))
+        if (json.insights) setAdInsights(json.insights)
+      } catch {
+        /* ignore */
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [data, datePreset])
 
   // Inicializa la selección de estados convertidos (localStorage o heurística).
   useEffect(() => {
@@ -196,6 +224,37 @@ export default function App() {
     () => byAd.map((g) => ({ name: `${g.adName || g.adId}`, label: g.key, total: g.total, conv: g.conv, pct: g.pct })),
     [byAd]
   )
+
+  // ─── Costos de Meta (gasto cruzado con leads / conversiones) ───
+  const currency = useMemo(() => {
+    for (const k in adInsights) if (adInsights[k]?.currency) return adInsights[k].currency
+    return null
+  }, [adInsights])
+
+  const fmtMoney = (n) => {
+    if (n == null || isNaN(n)) return '—'
+    try {
+      return new Intl.NumberFormat('es-MX', {
+        style: 'currency',
+        currency: currency || 'USD',
+        maximumFractionDigits: 2,
+      }).format(n)
+    } catch {
+      return Number(n).toFixed(2)
+    }
+  }
+  const fmtNum = (n) => (n == null || isNaN(n) ? '—' : new Intl.NumberFormat('es-MX').format(n))
+
+  const metaTotals = useMemo(() => {
+    const spend = byAd.reduce((s, g) => s + (adInsights[g.adId]?.spend || 0), 0)
+    const hasData = byAd.some((g) => adInsights[g.adId]?.hasData)
+    return {
+      spend,
+      hasData,
+      cpl: totals.total ? spend / totals.total : null,
+      cpa: totals.conv ? spend / totals.conv : null,
+    }
+  }, [byAd, adInsights, totals])
 
   // Desglose por estado
   const byStatus = useMemo(() => {
@@ -404,13 +463,37 @@ export default function App() {
           {/* Tabla detalle por anuncio */}
           <section className="card">
             <div className="card-head">
-              <h2>🖼️ Detalle por anuncio</h2>
-              <span className="muted">
-                {metaEnabled === false
-                  ? 'Conecta Meta (META_ACCESS_TOKEN) para ver las imágenes'
-                  : 'adset name – ad id'}
-              </span>
+              <h2>🖼️ Detalle y costos por anuncio</h2>
+              {metaEnabled === false ? (
+                <span className="muted">Conecta Meta (META_ACCESS_TOKEN) para imágenes y gasto</span>
+              ) : (
+                <label className="range-select muted">
+                  Gasto:
+                  <select className="input" value={datePreset} onChange={(e) => setDatePreset(e.target.value)}>
+                    <option value="maximum">Histórico</option>
+                    <option value="last_7d">Últimos 7 días</option>
+                    <option value="last_30d">Últimos 30 días</option>
+                    <option value="last_90d">Últimos 90 días</option>
+                  </select>
+                </label>
+              )}
             </div>
+            {metaEnabled && metaTotals.hasData && (
+              <div className="meta-kpis">
+                <div className="meta-kpi">
+                  <span className="mk-label">💸 Gasto total</span>
+                  <span className="mk-value">{fmtMoney(metaTotals.spend)}</span>
+                </div>
+                <div className="meta-kpi">
+                  <span className="mk-label">🎯 Costo por lead</span>
+                  <span className="mk-value">{fmtMoney(metaTotals.cpl)}</span>
+                </div>
+                <div className="meta-kpi">
+                  <span className="mk-label">🏆 Costo por conversión</span>
+                  <span className="mk-value">{metaTotals.cpa != null ? fmtMoney(metaTotals.cpa) : '—'}</span>
+                </div>
+              </div>
+            )}
             <div className="table-wrap">
               <table>
                 <thead>
@@ -419,13 +502,22 @@ export default function App() {
                     <th>Adset – Ad ID</th>
                     <th>Anuncio</th>
                     <th className="num">Leads</th>
-                    <th className="num">Convertidos</th>
+                    <th className="num">Conv.</th>
                     <th className="bar-col">% Conversión</th>
+                    <th className="num">Gasto</th>
+                    <th className="num">CPL</th>
+                    <th className="num">$/conv.</th>
+                    <th className="num">CTR</th>
+                    <th className="num">CPC</th>
                   </tr>
                 </thead>
                 <tbody>
                   {byAd.map((g) => {
                     const img = adImages[g.adId]
+                    const ins = adInsights[g.adId]
+                    const spend = ins?.spend || 0
+                    const cpl = ins?.hasData && g.total ? spend / g.total : null
+                    const cpa = ins?.hasData && g.conv ? spend / g.conv : null
                     return (
                     <tr key={g.key}>
                       <td>
@@ -451,12 +543,17 @@ export default function App() {
                           <span className="bar-pct">{g.pct}%</span>
                         </div>
                       </td>
+                      <td className="num">{ins?.hasData ? fmtMoney(spend) : '—'}</td>
+                      <td className="num">{cpl != null ? fmtMoney(cpl) : '—'}</td>
+                      <td className="num strong">{cpa != null ? fmtMoney(cpa) : '—'}</td>
+                      <td className="num">{ins?.hasData ? `${ins.ctr.toFixed(2)}%` : '—'}</td>
+                      <td className="num">{ins?.hasData ? fmtMoney(ins.cpc) : '—'}</td>
                     </tr>
                     )
                   })}
                   {byAd.length === 0 && (
                     <tr>
-                      <td colSpan={6} className="muted center">
+                      <td colSpan={11} className="muted center">
                         Sin datos.
                       </td>
                     </tr>

@@ -67,6 +67,20 @@ app.post('/api/ad-images', async (req, res) => {
   }
 });
 
+/** POST /api/ad-insights { adIds: [...], datePreset } — gasto/rendimiento por anuncio */
+app.post('/api/ad-insights', async (req, res) => {
+  if (!meta.enabled()) return res.json({ enabled: false, insights: {} });
+  try {
+    const { adIds, datePreset } = req.body || {};
+    if (!Array.isArray(adIds)) return res.status(400).json({ error: 'adIds debe ser un array' });
+    const insights = await meta.getAdInsights(adIds, datePreset);
+    res.json({ enabled: true, datePreset: datePreset || 'maximum', insights });
+  } catch (err) {
+    console.error('[meta] ad-insights error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.get('/api/health', (req, res) => res.json({ ok: true }));
 
 // ─── Servir el frontend compilado (producción) ────────────────
